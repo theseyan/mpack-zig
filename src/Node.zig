@@ -170,9 +170,7 @@ pub fn getMapKey(self: Node, key: []const u8) !Node {
     return node;
 }
 
-/// Get a node by path.
-/// Returns error.NodeMissing if any node in the path is missing.
-/// Returns error.IndexOutOfBounds if any array index in path does not actually exist.
+/// Use `Reader.getByPath` instead.
 pub fn getByPath(self: Node, path: []const u8) !Node {
     var current: Node = .{
         .raw = self.raw,
@@ -200,4 +198,135 @@ pub fn getByPath(self: Node, path: []const u8) !Node {
     }
 
     return current;
+}
+
+/// The safe way to use this is with an arena allocator.
+/// Prefer using `Reader.readAny` instead.
+/// `node` must be the root node of a tree for struct de-serialization.
+pub fn readAny(node: Node, allocator: std.mem.Allocator, comptime T: type) !T {
+    switch (@typeInfo(T)) {
+        .Null => {
+            if (try node.getType() != .Null) return error.TypeMismatch;
+            return null;
+        },
+        .Bool => {
+            return try node.getBool();
+        },
+        .Int => {
+            switch (try node.getType()) {
+                .Int => return @intCast(try node.getInt()),
+                .Uint => return @intCast(try node.getUint()),
+                else => return error.TypeMismatch,
+            }
+        },
+        .Float => {
+            switch (try node.getType()) {
+                .Float => return @floatCast(try node.getFloat()),
+                .Double => return @floatCast(try node.getDouble()),
+                else => return error.TypeMismatch,
+            }
+        },
+        .Optional => |opt_info| {
+            if (try node.isNull()) {
+                return null;
+            }
+            const val = try readAny(node, allocator, opt_info.child);
+            return val;
+        },
+        .Struct => |struct_info| {
+            if (try node.getType() != .Map) return error.TypeMismatch;
+            
+            var result: T = undefined;
+            const map_len = try node.getMapLength();
+            
+            // Track which fields we've found to ensure all required fields are present
+            var found_fields = [_]bool{false} ** struct_info.fields.len;
+            
+            var i: usize = 0;
+            while (i < map_len) : (i += 1) {
+                const key = try node.getMapKeyAt(i);
+                const value = try node.getMapValueAt(i);
+                
+                const key_str = try key.getString();
+                
+                // Find matching field
+                inline for (struct_info.fields, 0..) |field, field_idx| {
+                    if (std.mem.eql(u8, field.name, key_str)) {
+                        @field(result, field.name) = try readAny(value, allocator, field.type);
+                        found_fields[field_idx] = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Verify all non-optional fields were found
+            inline for (struct_info.fields, 0..) |field, j| {
+                if (!found_fields[j]) {
+                    // If field is not optional and wasn't found, error
+                    if (@typeInfo(field.type) != .Optional) {
+                        return error.MissingField;
+                    }
+                    // Initialize optional fields to null if not found
+                    @field(result, field.name) = null;
+                }
+            }
+            
+            return result;
+        },
+        .Pointer => |ptr_info| {
+            if (ptr_info.size == .Slice and ptr_info.child == u8) {
+                // String
+                return try node.getString();
+            } else if (ptr_info.size == .Slice) {
+                // Dynamic array
+                if (try node.getType() != .Array) return error.TypeMismatch;
+                const len = try node.getArrayLength();
+                
+                var result = try allocator.alloc(ptr_info.child, len);
+                errdefer allocator.free(result);
+                
+                var i: usize = 0;
+                while (i < len) : (i += 1) {
+                    const item = try node.getArrayItem(i);
+                    result[i] = try readAny(item, allocator, ptr_info.child);
+                }
+                
+                return result;
+            } else {
+                return error.UnsupportedType;
+            }
+        },
+        .Array => |array_info| {
+            if (try node.getType() != .Array) return error.TypeMismatch;
+            const len = try node.getArrayLength();
+            if (len != array_info.len) return error.ArrayLengthMismatch;
+            
+            var result: T = undefined;
+            var i: usize = 0;
+            while (i < len) : (i += 1) {
+                const item = try node.getArrayItem(i);
+                result[i] = try readAny(item, allocator, array_info.child);
+            }
+            
+            return result;
+        },
+        .Vector => |vector_info| {
+            if (try node.getType() != .Array) return error.TypeMismatch;
+            const len = try node.getArrayLength();
+            if (len != vector_info.len) return error.ArrayLengthMismatch;
+            
+            var result: T = undefined;
+            var i: usize = 0;
+            while (i < len) : (i += 1) {
+                const item = try node.getArrayItem(i);
+                result[i] = try readAny(item, allocator, vector_info.child);
+            }
+            
+            return result;
+        },
+        else => |info| {
+            _ = info;
+            return error.UnsupportedType;
+        },
+    }
 }

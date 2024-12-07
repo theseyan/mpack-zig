@@ -193,9 +193,9 @@ pub fn finishMap(self: *Writer) !void {
 }
 
 /// Write a String HashMap.
-pub fn writeHashMap(self: *Writer, comptime V: type, map: std.StringArrayHashMap(V)) !void {
+pub fn writeHashMap(self: *Writer, V: type, map: std.StringArrayHashMap(V)) !void {
     var it = map.iterator();
-    
+
     try startMap(self, @intCast(map.count()));
     while (it.next()) |entry| {
         try writeString(self, entry.key_ptr.*);
@@ -249,7 +249,7 @@ pub fn writeAnyExplicit(self: *Writer, comptime T: type, value: anytype) !void {
             } else if (ptr_info.size == .Slice) {
                 // slice
                 try startArray(self, @intCast(value.len));
-                inline for (value) |item| {
+                for (value) |item| {
                     try writeAnyExplicit(self, @TypeOf(item), item);
                 }
                 try finishArray(self);

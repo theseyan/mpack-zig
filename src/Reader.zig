@@ -41,6 +41,28 @@ pub fn deinit(self: *Tree) !void {
     self.allocator.destroy(self.raw);
 }
 
+/// Get a node by path.
+/// Returns error.NodeMissing if any node in the path is missing.
+/// Returns error.IndexOutOfBounds if any array index in path does not actually exist.
+pub fn getByPath(self: *Tree, path: []const u8) !Node {
+    const root = self.root;
+    return try root.getByPath(path);
+}
+
+/// Reads any of the supported data types.
+/// Strings are views into original memory, and get invalidated when the tree is destroyed.
+/// In case of dynamic arrays, this function will allocate memory.
+/// The caller must free the memory using the `deinit` function of arena.
+pub fn readAny(self: *Tree, comptime T: type) !struct { value: T, arena: std.heap.ArenaAllocator } {
+    var arena = std.heap.ArenaAllocator.init(self.allocator);
+    errdefer arena.deinit();
+
+    const root = self.root;
+
+    const value = try root.readAny(arena.allocator(), T);
+    return .{ .value = value, .arena = arena };
+}
+
 /// Creates a Cursor instance from the tree root.
 pub fn cursor(self: *Tree) !Cursor {
     const cr = try Cursor.init(self.root);

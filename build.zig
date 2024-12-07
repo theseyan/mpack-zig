@@ -19,7 +19,6 @@ pub fn build(b: *std.Build) void {
 
     mpack.addOptions("mpack_build_opts", buildOpts);
 
-    mpack.addIncludePath(b.path("src/c"));
     mpack.addCSourceFile(.{
         .file = mpack_c.path("src/mpack/mpack.c"),
         .flags = &[_][]const u8{
