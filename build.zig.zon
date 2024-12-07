@@ -1,0 +1,18 @@
+.{
+    .name = "mpack-zig",
+    .version = "0.0.0",
+    .minimum_zig_version = "0.13.0",
+
+    .dependencies = .{
+        .mpack = .{
+            .url = "https://github.com/ludocode/mpack/releases/download/v1.1.1/mpack-amalgamation-1.1.1.tar.gz",
+            .hash = "122017a6f909181a2b420fa27200cb9097767384907666d9d4d05564f7ab7f167246"
+        }
+    },
+
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
