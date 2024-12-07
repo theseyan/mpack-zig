@@ -198,7 +198,10 @@ pub const Cursor = struct {
 
 ## Testing
 
-Unit tests are present in the `test/` directory. PRs to improve the quality of these tests are welcome.
+Unit tests are present in the `test/` directory.
+
+Note that these tests are limited and do not cover everything.
+PRs to improve the quality of these tests are welcome.
 
 ```
 zig build test
