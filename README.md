@@ -14,10 +14,10 @@ Built and tested with Zig version `0.13.0`.
 - [Installation](#installation)
 - [Usage](#usage)
 - [API](#api)
-  - [`Environment`](#environment)
-  - [`Transaction`](#transaction)
-  - [`Database`](#database)
+  - [`Writer`](#writer)
+  - [`Reader`](#reader)
   - [`Cursor`](#cursor)
+- [Testing](#testing)
 - [Benchmarks](#benchmarks)
 
 ## Installation
