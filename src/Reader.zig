@@ -4,7 +4,8 @@ const std = @import("std");
 const c = @import("c/c.zig");
 const errors = @import("errors.zig");
 const Cursor = @import("Cursor.zig");
-const Node = @import("Node.zig");
+
+pub const Node = @import("Node.zig"); // Export Node as well
 const NodeType = Node.NodeType;
 
 const throw = errors.throw;
