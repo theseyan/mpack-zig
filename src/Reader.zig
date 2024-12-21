@@ -68,3 +68,11 @@ pub fn cursor(self: *Tree) !Cursor {
     const cr = try Cursor.init(self.root);
     return cr;
 }
+
+/// Get parsed byte size of tree.
+pub fn getByteSize(self: *Tree) !usize {
+    const size: usize = c.mpack_tree_size(self.raw);
+
+    if (size == 0) return error.InvalidTree;
+    return size;
+}

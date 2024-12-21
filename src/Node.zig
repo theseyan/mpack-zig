@@ -29,7 +29,7 @@ raw: c.mpack_node_t,
 
 /// Returns the type of this node.
 pub fn getType(self: Node) !NodeType {
-    try throw(c.mpack_node_error(self.raw));
+    // try throw(c.mpack_node_error(self.raw));
 
     return switch (c.mpack_node_type(self.raw)) {
         c.mpack_type_nil => .Null,
@@ -48,8 +48,8 @@ pub fn getType(self: Node) !NodeType {
 }
 
 /// Returns true if this node is actually present in tree.
-pub fn isValid(self: Node) !bool {
-    return try self.getType() != .Missing;
+pub fn isValid(self: Node) bool {
+    return c.mpack_node_is_missing(self.raw) == false;
 }
 
 /// Whether this node is null.
@@ -61,6 +61,42 @@ pub fn isNull(self: Node) !bool {
 pub fn getBool(self: Node) !bool {
     if (try self.getType() != .Bool) return error.TypeMismatch;
     return c.mpack_node_bool(self.raw);
+}
+
+/// Get 8-bit unsigned integer value from node.
+pub fn getUint8(self: Node) !u8 {
+    if (try self.getType() != .Uint) return error.TypeMismatch;
+    return c.mpack_node_u8(self.raw);
+}
+
+/// Get 16-bit unsigned integer value from node.
+pub fn getUint16(self: Node) !u16 {
+    if (try self.getType() != .Uint) return error.TypeMismatch;
+    return c.mpack_node_u16(self.raw);
+}
+
+/// Get 32-bit unsigned integer value from node.
+pub fn getUint32(self: Node) !u32 {
+    if (try self.getType() != .Uint) return error.TypeMismatch;
+    return c.mpack_node_u32(self.raw);
+}
+
+/// Get 8-bit signed integer value from node.
+pub fn getInt8(self: Node) !i8 {
+    if (try self.getType() != .Int) return error.TypeMismatch;
+    return c.mpack_node_i8(self.raw);
+}
+
+/// Get 16-bit signed integer value from node.
+pub fn getInt16(self: Node) !i16 {
+    if (try self.getType() != .Int) return error.TypeMismatch;
+    return c.mpack_node_i16(self.raw);
+}
+
+/// Get 32-bit signed integer value from node.
+pub fn getInt32(self: Node) !i32 {
+    if (try self.getType() != .Int) return error.TypeMismatch;
+    return c.mpack_node_i32(self.raw);
 }
 
 /// Get signed integer value from node.
@@ -118,7 +154,7 @@ pub fn getArrayItem(self: Node, index: usize) !Node {
     };
 
     // Validate node
-    if (try node.isValid() == false) return error.NodeMissing;
+    if (node.isValid() == false) return error.NodeMissing;
 
     return node;
 }
@@ -165,7 +201,7 @@ pub fn getMapKey(self: Node, key: []const u8) !Node {
     };
 
     // Validate node
-    if (try node.isValid() == false) return error.NodeMissing;
+    if (node.isValid() == false) return error.NodeMissing;
 
     return node;
 }
