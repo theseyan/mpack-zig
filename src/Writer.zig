@@ -3,6 +3,8 @@
 const std = @import("std");
 const c = @import("c/c.zig");
 const errors = @import("errors.zig");
+const Node = @import("Node.zig");
+const Cursor = @import("Cursor.zig");
 
 const throw = errors.throw;
 
@@ -163,8 +165,8 @@ pub fn writeString(self: *Writer, value: []const u8) !void {
 }
 
 /// Write binary bytes.
-pub fn writeBytes(self: *Writer, bytes: []u8) !void {
-    c.mpack_write_bin(&self.writer, bytes.ptr, bytes.len);
+pub fn writeBytes(self: *Writer, bytes: []const u8) !void {
+    c.mpack_write_bin(&self.writer, bytes.ptr, @intCast(bytes.len));
     try throw(c.mpack_writer_error(&self.writer));
 }
 
@@ -287,6 +289,57 @@ pub fn writeAnyExplicit(self: *Writer, comptime T: type, value: anytype) !void {
             // std.debug.print("Can't serialize type: {any} {s}\n", .{info, @typeName(T)});
             _ = info;
             return error.UnsupportedType;
+        }
+    }
+}
+
+/// Convenience function to serialize a parsed Map node.
+/// This is useful when you want to serialize a subset or child map of an already parsed tree.
+pub fn writeMapNode(self: *Writer, node: Node) !void {
+    std.debug.assert(try node.getType() == .Map);
+
+    var cursor = try Cursor.init(node);
+    var event = try cursor.next();
+
+    while (event) |ev| : (event = try cursor.next()) {
+        switch (ev.type) {
+            .MapStart => {
+                try self.startMap(@intCast(ev.size.?));
+            },
+            .MapEnd => {
+                try self.finishMap();
+            },
+            .MapKey, .MapValue, .ArrayItem => {},
+            .ArrayStart => {
+                try self.startArray(@intCast(ev.size.?));
+            },
+            .ArrayEnd => {
+                try self.finishArray();
+            },
+            .String => {
+                try self.writeString(ev.string_val.?);
+            },
+            .Bytes => {
+                try self.writeBytes(ev.bytes_val.?);
+            },
+            .Int => {
+                try self.writeInt64(ev.int_val.?);
+            },
+            .Uint => {
+                try self.writeUint64(ev.uint_val.?);
+            },
+            .Float => {
+                try self.writeFloat(ev.float_val.?);
+            },
+            .Double => {
+                try self.writeDouble(ev.double_val.?);
+            },
+            .Boolean => {
+                try self.writeBool(ev.bool_val.?);
+            },
+            .Null => {
+                try self.writeNull();
+            },
         }
     }
 }

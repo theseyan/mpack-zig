@@ -170,3 +170,26 @@ test "cursor api" {
         _ = event;
     }
 }
+
+test "convenience api" {
+    var tree = try Reader.init(allocator, &buffer);
+    defer (tree.deinit() catch {});
+
+    // Test writeMapNode
+    const mapNode = tree.root;
+
+    var buf: [1024]u8 = undefined;
+    var writer = Writer.init(&buf);
+
+    try writer.writeMapNode(mapNode);
+    try writer.deinit();
+
+    var tree2 = try Reader.init(allocator, &buf);
+    defer (tree2.deinit() catch {});
+
+    const p1 = try tree2.getByPath("points[0].x");
+    const p2 = try tree2.getByPath("points[0].y");
+
+    try std.testing.expectEqual(try p1.getDouble(), 123.123);
+    try std.testing.expectEqual(try p2.getDouble(), 123.123);
+}

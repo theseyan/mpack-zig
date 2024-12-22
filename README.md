@@ -46,9 +46,12 @@ As there is currently no documentation, I recommend checking out the tests to re
 
 ### `Writer`
 
-Buffered writer, used to incrementally write parts of the message. Writing should always start with `startMap` and end with `finishMap`.
+Buffered writer, used to incrementally write parts of the encoded message. Writing should always start with `startMap` and end with `finishMap`.
 
 The `writeAny`/`writeAnyExplicit` methods can be used to serialize a Zig struct to binary.
+
+If you already have a parsed tree of nodes, and need to serialize a nested child `Map` node to it's own MessagePack buffer, there is a 
+convenience method `writeMapNode` that accepts a `Reader.Node` (internally, it uses the `Writer` and `Cursor` APIs).
 
 ```zig
 const Writer = mpack.Writer;
@@ -103,6 +106,7 @@ The following `Writer` methods are available:
 - `startMap` - Start writing a map. `length` must be known upfront.
 - `finishArray`, `finishMap` - Close the last opened array/map.
 - `writeAnyExplicit` - When value is unknown at comptime, but type is known.
+- `writeMapNode` - Encode a parsed `NodeType.Map` node back to binary.
 - `stat` - Information about underlying buffer.
 
 ### `Reader`
