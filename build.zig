@@ -17,6 +17,11 @@ pub fn build(b: *std.Build) void {
     buildOpts.addOption(bool, "builder_api", false);
     buildOpts.addOption(bool, "expect_api", false);
 
+    // Whether to use mimalloc allocator
+    // If this is true, then mimalloc must be statically linked.
+    const use_mimalloc = b.option(bool, "use_mimalloc", "Use mimalloc allocator (requires static linking)") orelse false;
+    buildOpts.addOption(bool, "use_mimalloc", use_mimalloc);
+
     mpack.addOptions("mpack_build_opts", buildOpts);
 
     mpack.addCSourceFile(.{
@@ -37,7 +42,12 @@ pub fn build(b: *std.Build) void {
             "-DMPACK_BUILDER_INTERNAL_STORAGE=1",
 
             // We want to optimize for speed.
-            "-DMPACK_OPTIMIZE_FOR_SIZE=0"
+            "-DMPACK_OPTIMIZE_FOR_SIZE=0",
+
+            // Use mimalloc allocator if enabled
+            if (use_mimalloc) "-DMPACK_MALLOC=mi_malloc" else "",
+            if (use_mimalloc) "-DMPACK_FREE=mi_free" else "",
+            if (use_mimalloc) "-DMPACK_REALLOC=mi_realloc" else "",
         }
     });
 
