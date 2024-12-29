@@ -9,6 +9,7 @@ pub fn build(b: *std.Build) void {
     // MPack C library
     const mpack_c = b.dependency("mpack", .{});
     mpack.addIncludePath(mpack_c.path("src/mpack"));
+    mpack.addIncludePath(b.path("src/c/include"));
 
     // We need to expose build options to source Zig code
     // so that importing of C header works correctly.
@@ -45,9 +46,7 @@ pub fn build(b: *std.Build) void {
             "-DMPACK_OPTIMIZE_FOR_SIZE=0",
 
             // Use mimalloc allocator if enabled
-            if (use_mimalloc) "-DMPACK_MALLOC=mi_malloc" else "",
-            if (use_mimalloc) "-DMPACK_FREE=mi_free" else "",
-            if (use_mimalloc) "-DMPACK_REALLOC=mi_realloc" else "",
+            if (use_mimalloc) "-includemimalloc-override.h" else "",
         }
     });
 

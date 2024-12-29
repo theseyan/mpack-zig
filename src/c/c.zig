@@ -8,9 +8,7 @@ const c = @cImport({
     @cDefine("MPACK_OPTIMIZE_FOR_SIZE", "0");
     
     if (build_options.use_mimalloc) {
-        @cDefine("MPACK_MALLOC", "mi_malloc");
-        @cDefine("MPACK_FREE", "mi_free");
-        @cDefine("MPACK_REALLOC", "mi_realloc");
+        @cInclude("mimalloc-override.h");
     }
 
     @cInclude("mpack.h");
