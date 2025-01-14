@@ -180,7 +180,7 @@ pub const Node = {
 ### `TreeCursor`
 
 A `TreeCursor` can be used to traverse through a tree's nodes in order.
-```
+```zig
 var cursor = try tree.cursor();
 
 // ... or a cursor starting from any nested Map node
@@ -226,7 +226,7 @@ Simple primitive reader API that reads tags from the encoded buffer one-by-one. 
 Use the `Tree` API if elements are to be accessed multiple times or random-access is required.
 Otherwise, it is recommended to use the traversing `Cursor` API instead of using this directly.
 
-```
+```zig
 pub const Reader = struct {
   pub const TagType = enum {
     Null,
@@ -307,7 +307,7 @@ Unit tests are present in the `test/` directory.
 Currently, the tests are limited and do not cover everything.
 PRs to improve the quality of these tests are welcome.
 
-```
+```bash
 zig build test
 ```
 
@@ -316,7 +316,7 @@ zig build test
 Benchmarks are present in `benchmark/` and use the [zBench](https://github.com/hendriknielaender/zBench) library.
 
 Run the benchmarks:
-```
+```bash
 zig build bench
 ```
 
