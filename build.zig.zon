@@ -7,6 +7,10 @@
         .mpack = .{
             .url = "https://github.com/ludocode/mpack/releases/download/v1.1.1/mpack-amalgamation-1.1.1.tar.gz",
             .hash = "122017a6f909181a2b420fa27200cb9097767384907666d9d4d05564f7ab7f167246"
+        },
+        .zbench = .{
+            .url = "https://github.com/hendriknielaender/zBench/archive/refs/tags/v0.9.1.tar.gz",
+            .hash = "1220b19e117897a42abc5e58633766a3be92f9ebade400116afea57957bebe41aed0"
         }
     },
 

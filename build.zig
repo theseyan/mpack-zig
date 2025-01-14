@@ -51,6 +51,8 @@ pub fn build(b: *std.Build) void {
     });
 
     // Benchmarks
+    const zBench = b.dependency("zbench", .{});
+
     const bench = b.addExecutable(.{
         .name = "mpack-bench",
         .root_source_file = b.path("benchmark/main.zig"),
@@ -60,6 +62,7 @@ pub fn build(b: *std.Build) void {
 
     bench.linkLibC();
     bench.root_module.addImport("mpack", mpack);
+    bench.root_module.addImport("zbench", zBench.module("zbench"));
 
     // b.installArtifact(bench);
 
