@@ -15,6 +15,8 @@ Built and tested with Zig version `0.13.0`.
 - [Usage](#usage)
 - [API](#api)
   - [`Writer`](#writer)
+  - [`Tree`](#tree)
+  - [`TreeCursor`](#treecursor)
   - [`Reader`](#reader)
   - [`Cursor`](#cursor)
 - [Testing](#testing)
@@ -266,7 +268,7 @@ pub const Reader = struct {
 };
 ```
 
-### Cursor
+### `Cursor`
 
 Cursor based on the `Reader` API. Faster than `TreeCursor` but subject to the same limitations as `Reader`.
 
