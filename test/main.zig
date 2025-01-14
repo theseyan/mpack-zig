@@ -1,8 +1,10 @@
 const std = @import("std");
 const mpack = @import("mpack");
+const Tree = mpack.Tree;
+const TreeCursor = mpack.TreeCursor;
+const Writer = mpack.Writer;
 const Reader = mpack.Reader;
 const Cursor = mpack.Cursor;
-const Writer = mpack.Writer;
 
 const allocator = std.testing.allocator;
 
@@ -111,7 +113,7 @@ test "struct serialization/deserialization api" {
 
     try writer.writeAny(human);
 
-    var tree = try Reader.init(allocator, &buffer);
+    var tree = try Tree.init(allocator, &buffer, null);
     defer (tree.deinit() catch |err| {
         std.debug.panic("Failed to de-initialize tree: {s}\n", .{@errorName(err)});
     });
@@ -132,7 +134,7 @@ test "struct serialization/deserialization api" {
 }
 
 test "node api" {
-    var tree = try Reader.init(allocator, &buffer);
+    var tree = try Tree.init(allocator, &buffer, null);
     defer (tree.deinit() catch |err| {
         std.debug.panic("Failed to de-initialize tree: {s}\n", .{@errorName(err)});
     });
@@ -159,8 +161,36 @@ test "node api" {
     try std.testing.expectEqual(try p7.getDouble(), 123.123);
 }
 
-test "cursor api" {
-    var tree = try Reader.init(allocator, &buffer);
+test "node api with pool" {
+    var pool = try Tree.Pool.init(allocator, 1024);
+    defer pool.deinit();
+    var tree = try Tree.init(allocator, &buffer, pool);
+    defer (tree.deinit() catch unreachable);
+
+    // Test getByPath
+    const p1 = try tree.getByPath("name");
+    const p2 = try tree.getByPath("age");
+    const p3 = try tree.getByPath("is_active");
+    const p6 = try tree.getByPath("tags[0]");
+    const p7 = try tree.getByPath("points[0].x");
+
+    try std.testing.expectEqualStrings(try p1.getString(), "Sayan");
+    try std.testing.expectEqual(try p2.getUint(), 100);
+    try std.testing.expectEqual(try p3.getBool(), true);
+
+    try std.testing.expectEqualStrings(try p6.getString(), "India");
+    try std.testing.expectEqual(try p7.getDouble(), 123.123);
+}
+
+test "node pool overflow" {
+    var pool = try Tree.Pool.init(allocator, 16);
+    defer pool.deinit();
+
+    try std.testing.expectError(error.MPACK_ERROR_TOO_BIG, Tree.init(allocator, &buffer, pool));
+}
+
+test "tree cursor api" {
+    var tree = try Tree.init(allocator, &buffer, null);
     defer (tree.deinit() catch |err| {
         std.debug.panic("Failed to de-initialize tree: {s}\n", .{@errorName(err)});
     });
@@ -171,8 +201,19 @@ test "cursor api" {
     }
 }
 
+test "cursor api" {
+    var reader = Reader.init(&buffer);
+    defer (reader.deinit() catch unreachable);
+
+    var cursor = reader.cursor();
+
+    while (try cursor.next()) |event| {
+        _ = event;
+    }
+}
+
 test "convenience api" {
-    var tree = try Reader.init(allocator, &buffer);
+    var tree = try Tree.init(allocator, &buffer, null);
     defer (tree.deinit() catch {});
 
     // Test writeMapNode
@@ -184,7 +225,7 @@ test "convenience api" {
     try writer.writeMapNode(mapNode);
     try writer.deinit();
 
-    var tree2 = try Reader.init(allocator, &buf);
+    var tree2 = try Tree.init(allocator, &buf, null);
     defer (tree2.deinit() catch {});
 
     const p1 = try tree2.getByPath("points[0].x");

@@ -4,7 +4,7 @@ const std = @import("std");
 const c = @import("c/c.zig");
 const errors = @import("errors.zig");
 const Node = @import("Node.zig");
-const Cursor = @import("Cursor.zig");
+const Cursor = @import("TreeCursor.zig");
 
 const throw = errors.throw;
 
@@ -296,48 +296,46 @@ pub fn writeAnyExplicit(self: *Writer, comptime T: type, value: anytype) !void {
 /// Convenience function to serialize a parsed Map node.
 /// This is useful when you want to serialize a subset or child map of an already parsed tree.
 pub fn writeMapNode(self: *Writer, node: Node) !void {
-    std.debug.assert(try node.getType() == .Map);
+    std.debug.assert(node.getType() == .Map);
 
-    var cursor = try Cursor.init(node);
-    var event = try cursor.next();
+    var cursor = Cursor.init(node);
 
-    while (event) |ev| : (event = try cursor.next()) {
-        switch (ev.type) {
-            .MapStart => {
-                try self.startMap(@intCast(ev.size.?));
+    while (try cursor.next()) |ev| {
+        switch (ev) {
+            .mapStart => {
+                try self.startMap(ev.mapStart);
             },
-            .MapEnd => {
+            .mapEnd => {
                 try self.finishMap();
             },
-            .MapKey, .MapValue, .ArrayItem => {},
-            .ArrayStart => {
-                try self.startArray(@intCast(ev.size.?));
+            .arrayStart => {
+                try self.startArray(ev.arrayStart);
             },
-            .ArrayEnd => {
+            .arrayEnd => {
                 try self.finishArray();
             },
-            .String => {
-                try self.writeString(ev.string_val.?);
+            .string => {
+                try self.writeString(ev.string);
             },
-            .Bytes => {
-                try self.writeBytes(ev.bytes_val.?);
+            .bytes => {
+                try self.writeBytes(ev.bytes);
             },
-            .Int => {
-                try self.writeInt64(ev.int_val.?);
+            .int => {
+                try self.writeInt64(ev.int);
             },
-            .Uint => {
-                try self.writeUint64(ev.uint_val.?);
+            .uint => {
+                try self.writeUint64(ev.uint);
             },
-            .Float => {
-                try self.writeFloat(ev.float_val.?);
+            .float => {
+                try self.writeFloat(ev.float);
             },
-            .Double => {
-                try self.writeDouble(ev.double_val.?);
+            .double => {
+                try self.writeDouble(ev.double);
             },
-            .Boolean => {
-                try self.writeBool(ev.bool_val.?);
+            .bool => {
+                try self.writeBool(ev.bool);
             },
-            .Null => {
+            .null => {
                 try self.writeNull();
             },
         }
