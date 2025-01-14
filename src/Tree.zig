@@ -17,7 +17,7 @@ pub const Pool = struct {
     raw: []c.mpack_node_data_t,
     allocator: std.mem.Allocator,
 
-    /// Creates a pool of pre-allocated nodes for use with `initWithPool`.
+    /// Creates a pool of pre-allocated nodes for use with `init`.
     /// This helps avoid slow dynamic allocations in hot paths.
     pub fn init(allocator: std.mem.Allocator, size: usize) !Pool {
         return .{

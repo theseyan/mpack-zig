@@ -157,7 +157,7 @@ pub fn readTag(self: *Reader) !Tag {
     return tag;
 }
 
- /// Finish reading array.
+/// Finish reading array.
 pub fn finishArray(self: *Reader) void {
     return c.mpack_done_array(&self.raw);
 }

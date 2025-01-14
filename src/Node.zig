@@ -53,7 +53,7 @@ pub fn isValid(self: Node) bool {
 }
 
 /// Whether this node is null.
-pub fn isNull(self: Node) !bool {
+pub fn isNull(self: Node) bool {
     return self.getType() == .Null;
 }
 
@@ -263,7 +263,7 @@ pub fn readAny(node: Node, allocator: std.mem.Allocator, comptime T: type) !T {
             }
         },
         .Optional => |opt_info| {
-            if (try node.isNull()) {
+            if (node.isNull()) {
                 return null;
             }
             const val = try readAny(node, allocator, opt_info.child);

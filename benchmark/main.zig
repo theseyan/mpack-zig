@@ -189,7 +189,7 @@ fn treeReadBenchmark(allocator: std.mem.Allocator) void {
 }
 
 fn treeCursorBenchmark(allocator: std.mem.Allocator) void {
-    var tree = mpack.Tree.init(allocator, &readBuffer, null) catch unreachable;
+    var tree = mpack.Tree.init(allocator, &readBuffer, nodePool) catch unreachable;
     defer (tree.deinit() catch unreachable);
     var cursor = tree.cursor() catch unreachable;
 
