@@ -28,8 +28,8 @@ const Node = @This();
 raw: c.mpack_node_t,
 
 /// Returns the type of this node.
-pub fn getType(self: Node) !NodeType {
-    // try throw(c.mpack_node_error(self.raw));
+pub fn getType(self: Node) NodeType {
+    std.debug.assert(c.mpack_node_error(self.raw) == c.mpack_ok);
 
     return switch (c.mpack_node_type(self.raw)) {
         c.mpack_type_nil => .Null,
@@ -54,98 +54,98 @@ pub fn isValid(self: Node) bool {
 
 /// Whether this node is null.
 pub fn isNull(self: Node) !bool {
-    return try self.getType() == .Null;
+    return self.getType() == .Null;
 }
 
 /// Get boolean value from node.
 pub fn getBool(self: Node) !bool {
-    if (try self.getType() != .Bool) return error.TypeMismatch;
+    if (self.getType() != .Bool) return error.TypeMismatch;
     return c.mpack_node_bool(self.raw);
 }
 
 /// Get 8-bit unsigned integer value from node.
 pub fn getUint8(self: Node) !u8 {
-    if (try self.getType() != .Uint) return error.TypeMismatch;
+    if (self.getType() != .Uint) return error.TypeMismatch;
     return c.mpack_node_u8(self.raw);
 }
 
 /// Get 16-bit unsigned integer value from node.
 pub fn getUint16(self: Node) !u16 {
-    if (try self.getType() != .Uint) return error.TypeMismatch;
+    if (self.getType() != .Uint) return error.TypeMismatch;
     return c.mpack_node_u16(self.raw);
 }
 
 /// Get 32-bit unsigned integer value from node.
 pub fn getUint32(self: Node) !u32 {
-    if (try self.getType() != .Uint) return error.TypeMismatch;
+    if (self.getType() != .Uint) return error.TypeMismatch;
     return c.mpack_node_u32(self.raw);
 }
 
 /// Get 8-bit signed integer value from node.
 pub fn getInt8(self: Node) !i8 {
-    if (try self.getType() != .Int) return error.TypeMismatch;
+    if (self.getType() != .Int) return error.TypeMismatch;
     return c.mpack_node_i8(self.raw);
 }
 
 /// Get 16-bit signed integer value from node.
 pub fn getInt16(self: Node) !i16 {
-    if (try self.getType() != .Int) return error.TypeMismatch;
+    if (self.getType() != .Int) return error.TypeMismatch;
     return c.mpack_node_i16(self.raw);
 }
 
 /// Get 32-bit signed integer value from node.
 pub fn getInt32(self: Node) !i32 {
-    if (try self.getType() != .Int) return error.TypeMismatch;
+    if (self.getType() != .Int) return error.TypeMismatch;
     return c.mpack_node_i32(self.raw);
 }
 
 /// Get signed integer value from node.
 pub fn getInt(self: Node) !i64 {
-    if (try self.getType() != .Int) return error.TypeMismatch;
+    if (self.getType() != .Int) return error.TypeMismatch;
     return c.mpack_node_i64(self.raw);
 }
 
 /// Get unsigned integer value from node.
 pub fn getUint(self: Node) !u64 {
-    if (try self.getType() != .Uint) return error.TypeMismatch;
+    if (self.getType() != .Uint) return error.TypeMismatch;
     return c.mpack_node_u64(self.raw);
 }
 
 /// Get float value from node.
 pub fn getFloat(self: Node) !f32 {
-    if (try self.getType() != .Float) return error.TypeMismatch;
+    if (self.getType() != .Float) return error.TypeMismatch;
     return c.mpack_node_float(self.raw);
 }
 
 /// Get double value from node.
 pub fn getDouble(self: Node) !f64 {
-    if (try self.getType() != .Double) return error.TypeMismatch;
+    if (self.getType() != .Double) return error.TypeMismatch;
     return c.mpack_node_double(self.raw);
 }
 
 /// Get string value from node.
 pub fn getString(self: Node) ![]const u8 {
-    if (try self.getType() != .String) return error.TypeMismatch;
+    if (self.getType() != .String) return error.TypeMismatch;
     const len = c.mpack_node_strlen(self.raw);
     return c.mpack_node_str(self.raw)[0..len];
 }
 
 /// Get binary bytes from node.
 pub fn getBytes(self: Node) ![]const u8 {
-    if (try self.getType() != .Bytes) return error.TypeMismatch;
+    if (self.getType() != .Bytes) return error.TypeMismatch;
     const len = c.mpack_node_bin_size(self.raw);
     return c.mpack_node_bin_data(self.raw)[0..len];
 }
 
 /// Get array length from node.
-pub fn getArrayLength(self: Node) !usize {
-    if (try self.getType() != .Array) return error.TypeMismatch;
-    return c.mpack_node_array_length(self.raw);
+pub fn getArrayLength(self: Node) !u32 {
+    if (self.getType() != .Array) return error.TypeMismatch;
+    return @intCast(c.mpack_node_array_length(self.raw));
 }
 
 /// Get array item at index.
 pub fn getArrayItem(self: Node, index: usize) !Node {
-    if (try self.getType() != .Array) return error.TypeMismatch;
+    if (self.getType() != .Array) return error.TypeMismatch;
     const len = try self.getArrayLength();
     if (index >= len) return error.IndexOutOfBounds;
 
@@ -160,14 +160,14 @@ pub fn getArrayItem(self: Node, index: usize) !Node {
 }
 
 /// Get map length from node.
-pub fn getMapLength(self: Node) !usize {
-    if (try self.getType() != .Map) return error.TypeMismatch;
-    return c.mpack_node_map_count(self.raw);
+pub fn getMapLength(self: Node) !u32 {
+    if (self.getType() != .Map) return error.TypeMismatch;
+    return @intCast(c.mpack_node_map_count(self.raw));
 }
 
 /// Get Map Key node at specific index.
 pub fn getMapKeyAt(self: Node, index: usize) !Node {
-    if (try self.getType() != .Map) return error.TypeMismatch;
+    if (self.getType() != .Map) return error.TypeMismatch;
 
     const count = try self.getMapLength();
     if (index >= count) return error.IndexOutOfBounds;
@@ -181,7 +181,7 @@ pub fn getMapKeyAt(self: Node, index: usize) !Node {
 
 /// Get Map Value node at specific index.
 pub fn getMapValueAt(self: Node, index: usize) !Node {
-    if (try self.getType() != .Map) return error.TypeMismatch;
+    if (self.getType() != .Map) return error.TypeMismatch;
     const count = try self.getMapLength();
     if (index >= count) return error.IndexOutOfBounds;
 
@@ -194,7 +194,7 @@ pub fn getMapValueAt(self: Node, index: usize) !Node {
 
 /// Get Node from key in map.
 pub fn getMapKey(self: Node, key: []const u8) !Node {
-    if (try self.getType() != .Map) return error.TypeMismatch;
+    if (self.getType() != .Map) return error.TypeMismatch;
     
     const node = Node{
         .raw = c.mpack_node_map_str_optional(self.raw, key.ptr, key.len),
@@ -211,7 +211,7 @@ pub fn getByPath(self: Node, path: []const u8) !Node {
     var current: Node = .{
         .raw = self.raw,
     };
-    var iter = std.mem.split(u8, path, ".");
+    var iter = std.mem.splitSequence(u8, path, ".");
 
     while (iter.next()) |segment| {
         // Check if we have an array access
@@ -242,21 +242,21 @@ pub fn getByPath(self: Node, path: []const u8) !Node {
 pub fn readAny(node: Node, allocator: std.mem.Allocator, comptime T: type) !T {
     switch (@typeInfo(T)) {
         .Null => {
-            if (try node.getType() != .Null) return error.TypeMismatch;
+            if (node.getType() != .Null) return error.TypeMismatch;
             return null;
         },
         .Bool => {
             return try node.getBool();
         },
         .Int => {
-            switch (try node.getType()) {
+            switch (node.getType()) {
                 .Int => return @intCast(try node.getInt()),
                 .Uint => return @intCast(try node.getUint()),
                 else => return error.TypeMismatch,
             }
         },
         .Float => {
-            switch (try node.getType()) {
+            switch (node.getType()) {
                 .Float => return @floatCast(try node.getFloat()),
                 .Double => return @floatCast(try node.getDouble()),
                 else => return error.TypeMismatch,
@@ -270,7 +270,7 @@ pub fn readAny(node: Node, allocator: std.mem.Allocator, comptime T: type) !T {
             return val;
         },
         .Struct => |struct_info| {
-            if (try node.getType() != .Map) return error.TypeMismatch;
+            if (node.getType() != .Map) return error.TypeMismatch;
             
             var result: T = undefined;
             const map_len = try node.getMapLength();
@@ -315,7 +315,7 @@ pub fn readAny(node: Node, allocator: std.mem.Allocator, comptime T: type) !T {
                 return try node.getString();
             } else if (ptr_info.size == .Slice) {
                 // Dynamic array
-                if (try node.getType() != .Array) return error.TypeMismatch;
+                if (node.getType() != .Array) return error.TypeMismatch;
                 const len = try node.getArrayLength();
                 
                 var result = try allocator.alloc(ptr_info.child, len);
@@ -333,7 +333,7 @@ pub fn readAny(node: Node, allocator: std.mem.Allocator, comptime T: type) !T {
             }
         },
         .Array => |array_info| {
-            if (try node.getType() != .Array) return error.TypeMismatch;
+            if (node.getType() != .Array) return error.TypeMismatch;
             const len = try node.getArrayLength();
             if (len != array_info.len) return error.ArrayLengthMismatch;
             
@@ -347,7 +347,7 @@ pub fn readAny(node: Node, allocator: std.mem.Allocator, comptime T: type) !T {
             return result;
         },
         .Vector => |vector_info| {
-            if (try node.getType() != .Array) return error.TypeMismatch;
+            if (node.getType() != .Array) return error.TypeMismatch;
             const len = try node.getArrayLength();
             if (len != vector_info.len) return error.ArrayLengthMismatch;
             
