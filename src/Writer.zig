@@ -194,6 +194,21 @@ pub fn finishMap(self: *Writer) !void {
     try throw(c.mpack_writer_error(&self.writer));
 }
 
+/// Write a pre-encoded MessagePack object.
+/// This is particularly useful when creating a larger structure that embeds smaller encoded structures,
+/// wihout having to decode and re-encode everything.
+/// Note: It doesn't validate that the bytes are valid MessagePack data!
+pub fn writeEncodedObject(self: *Writer, bytes: []const u8) !void {
+    try throw(c.mpack_write_object_bytes(&self.writer, bytes.ptr, bytes.len));
+}
+
+/// Write a MessagePack Extension type.
+/// Extension types [0, 127] are available for application-specific types.
+/// Extension types [-128, -1] are reserved for future extensions of MessagePack.
+pub fn writeExtension(self: *Writer, extType: i8, bytes: []const u8) !void {
+    c.mpack_write_ext(&self.writer, extType, bytes.ptr, @intCast(bytes.len));
+}
+
 /// Write a String HashMap.
 pub fn writeHashMap(self: *Writer, V: type, map: std.StringArrayHashMap(V)) !void {
     var it = map.iterator();
@@ -338,6 +353,9 @@ pub fn writeMapNode(self: *Writer, node: Node) !void {
             .null => {
                 try self.writeNull();
             },
+            .extension => {
+                try self.writeExtension(ev.extension.type, ev.extension.data);
+            }
         }
     }
 }
