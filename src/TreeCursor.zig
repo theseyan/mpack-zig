@@ -35,18 +35,15 @@ pub const Event = union(enum) {
 
 const Container = struct {
     kind: enum { Map, Array },
-    length: u32
+    index: u32,
+    length: u32,
+    container: Node
 };
 
 /// Maximum nesting level for Cursor traversed messages.
 /// This default should be enough for *most* cases.
 pub const MAX_STACK_DEPTH = 512;
-
 stack: [MAX_STACK_DEPTH]Container = undefined,
-indices: [MAX_STACK_DEPTH]struct {
-    index: u32,
-    container: Node
-} = undefined,
 
 depth: u16 = 0, // The current nesting depth while parsing
 current: Node,  // The current node while traversing
@@ -67,7 +64,7 @@ pub fn next(self: *Cursor) !?Event {
     if (self.depth > 0) {
         const current = self.stack[self.depth - 1];
 
-        if (current.length == 0) {
+        if (current.index == 0) {
             self.depth -= 1;
             
             // Check for end condition
@@ -89,14 +86,10 @@ pub fn next(self: *Cursor) !?Event {
 
         // Move to the next tag
         if (!self.exhausted) {
-            const index = self.indices[self.depth - 1];
-
             if (current.kind == .Array) {
-                self.current = try index.container.getArrayItem(index.index);
-                self.indices[self.depth - 1].index += 1;
+                self.current = try current.container.getArrayItem(current.length - current.index);
             } else if (current.kind == .Map) {
-                self.current = if (current.length % 2 == 0) try index.container.getMapKeyAt(index.index / 2) else try index.container.getMapValueAt(index.index / 2);
-                self.indices[self.depth - 1].index += 1;
+                self.current = if (current.index % 2 == 0) try current.container.getMapKeyAt((current.length - current.index) / 2) else try current.container.getMapValueAt((current.length - current.index) / 2);
             }
         }
     }
@@ -139,11 +132,9 @@ pub fn next(self: *Cursor) !?Event {
             self.depth += 1;
             self.stack[self.depth - 1] = .{
                 .kind = .Map,
+                .index = len * 2,
                 .length = len * 2,
-            };
-            self.indices[self.depth - 1] = .{
-                .container = self.current,
-                .index = 0
+                .container = self.current
             };
             return Event{ .mapStart = len };
         },
@@ -152,11 +143,9 @@ pub fn next(self: *Cursor) !?Event {
             self.depth += 1;
             self.stack[self.depth - 1] = .{
                 .kind = .Array,
+                .index = len,
                 .length = len,
-            };
-            self.indices[self.depth - 1] = .{
                 .container = self.current,
-                .index = 0
             };
             return Event{ .arrayStart = len };
         },
@@ -173,7 +162,7 @@ pub fn next(self: *Cursor) !?Event {
 // Decrements the current stack item counter.
 fn decrement(self: *Cursor) void {
     std.debug.assert(self.depth > 0);
-    std.debug.assert(self.stack[self.depth - 1].length > 0);
+    std.debug.assert(self.stack[self.depth - 1].index > 0);
 
-    self.stack[self.depth - 1].length -= 1;
+    self.stack[self.depth - 1].index -= 1;
 }
