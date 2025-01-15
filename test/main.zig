@@ -212,6 +212,30 @@ test "cursor api" {
     }
 }
 
+test "messagepack extensions" {
+    var buf: [1024]u8 = undefined;
+    var writer = Writer.init(&buf);
+
+    try writer.startMap(1);
+    try writer.writeString("key");
+    try writer.writeExtension(10, "hello world");
+    try writer.finishMap();
+    try writer.deinit();
+
+    var reader = Reader.init(&buf);
+    defer (reader.deinit() catch unreachable);
+
+    var cursor = reader.cursor();
+    _ = try cursor.next();
+    _ = try cursor.next();
+    const ext = try cursor.next();
+    _ = try cursor.next();
+
+    try std.testing.expect(ext.? == .extension);
+    try std.testing.expectEqual(10, ext.?.extension.type);
+    try std.testing.expectEqualStrings("hello world", ext.?.extension.data);
+}
+
 test "convenience api" {
     var tree = try Tree.init(allocator, &buffer, null);
     defer (tree.deinit() catch {});
