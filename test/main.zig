@@ -236,6 +236,40 @@ test "messagepack extensions" {
     try std.testing.expectEqualStrings("hello world", ext.?.extension.data);
 }
 
+test "Writer.writeEncodedObject" {
+    var buf: [1024]u8 = undefined;
+    var writer = Writer.init(&buf);
+
+    try writer.startMap(1);
+    try writer.writeString("key");
+    try writer.writeExtension(10, "hello world");
+    try writer.finishMap();
+    try writer.deinit();
+
+    const used = writer.stat().buffer_used;
+
+    var writer2 = Writer.init(buf[used..]);
+    try writer2.startMap(1);
+    try writer2.writeString("parentKey");
+    try writer2.writeEncodedObject(buf[0..used]);
+    try writer2.finishMap();
+    try writer2.deinit();
+
+    const bytes = buf[used..(used + writer2.stat().buffer_used)];
+    var reader = Reader.init(bytes);
+    defer (reader.deinit() catch unreachable);
+
+    var cursor = reader.cursor();
+    _ = try cursor.next();
+    _ = try cursor.next();
+
+    try std.testing.expect((try cursor.next()).? == .mapStart);
+    try std.testing.expectEqualStrings("key", (try cursor.next()).?.string);
+    _ = try cursor.next();
+    _ = try cursor.next();
+    _ = try cursor.next();
+}
+
 test "convenience api" {
     var tree = try Tree.init(allocator, &buffer, null);
     defer (tree.deinit() catch {});

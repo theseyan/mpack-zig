@@ -199,7 +199,7 @@ pub fn finishMap(self: *Writer) !void {
 /// wihout having to decode and re-encode everything.
 /// Note: It doesn't validate that the bytes are valid MessagePack data!
 pub fn writeEncodedObject(self: *Writer, bytes: []const u8) !void {
-    try throw(c.mpack_write_object_bytes(&self.writer, bytes.ptr, bytes.len));
+    c.mpack_write_object_bytes(&self.writer, bytes.ptr, bytes.len);
 }
 
 /// Write a MessagePack Extension type.
