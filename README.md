@@ -109,7 +109,7 @@ The following `Writer` methods are available:
 - `writeNumberExplicit` - Infer the type of number at comptime, but value is runtime-known.
 - `writeString`
 - `writeBytes`
-- `writeExtension` - Read more on (MessagePack Extensions)[https://github.com/msgpack/msgpack/blob/master/spec.md#extension-types].
+- `writeExtension` - Read more on [MessagePack Extensions](https://github.com/msgpack/msgpack/blob/master/spec.md#extension-types).
 - `startArray` - Start writing an array. `count` must be known upfront.
 - `startMap` - Start writing a map. `length` must be known upfront.
 - `finishArray`, `finishMap` - Close the last opened array/map.
