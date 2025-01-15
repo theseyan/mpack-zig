@@ -18,6 +18,7 @@ pub const NodeType = enum {
     Bytes,
     Array,
     Map,
+    Extension,
 
     // If node does not actually exist in tree
     Missing
@@ -42,6 +43,7 @@ pub fn getType(self: Node) NodeType {
         c.mpack_type_bin => .Bytes,
         c.mpack_type_array => .Array,
         c.mpack_type_map => .Map,
+        c.mpack_type_ext => .Extension,
         c.mpack_type_missing => .Missing,
         else => unreachable,
     };
@@ -137,6 +139,23 @@ pub fn getBytes(self: Node) ![]const u8 {
     return c.mpack_node_bin_data(self.raw)[0..len];
 }
 
+/// Get Extension type from node.
+pub fn getExtensionType(self: Node) !i8 {
+    if (self.getType() != .Extension) return error.TypeMismatch;
+    const extType = c.mpack_node_exttype(self.raw);
+
+    if (extType == 0) return errors.Error.MPACK_ERROR_INVALID;
+
+    return extType;
+}
+
+/// Get Extension bytes from node.
+pub fn getExtensionBytes(self: Node) ![]const u8 {
+    if (self.getType() != .Extension) return error.TypeMismatch;
+    const len = c.mpack_node_data_len(self.raw);
+    return c.mpack_node_data(self.raw)[0..len];
+}
+
 /// Get array length from node.
 pub fn getArrayLength(self: Node) !u32 {
     if (self.getType() != .Array) return error.TypeMismatch;
@@ -144,13 +163,13 @@ pub fn getArrayLength(self: Node) !u32 {
 }
 
 /// Get array item at index.
-pub fn getArrayItem(self: Node, index: usize) !Node {
+pub fn getArrayItem(self: Node, index: u32) !Node {
     if (self.getType() != .Array) return error.TypeMismatch;
     const len = try self.getArrayLength();
     if (index >= len) return error.IndexOutOfBounds;
 
     const node = Node{
-        .raw = c.mpack_node_array_at(self.raw, @intCast(index)),
+        .raw = c.mpack_node_array_at(self.raw, @as(usize, index)),
     };
 
     // Validate node
@@ -166,27 +185,27 @@ pub fn getMapLength(self: Node) !u32 {
 }
 
 /// Get Map Key node at specific index.
-pub fn getMapKeyAt(self: Node, index: usize) !Node {
+pub fn getMapKeyAt(self: Node, index: u32) !Node {
     if (self.getType() != .Map) return error.TypeMismatch;
 
     const count = try self.getMapLength();
     if (index >= count) return error.IndexOutOfBounds;
 
     const node = Node{
-        .raw = c.mpack_node_map_key_at(self.raw, index),
+        .raw = c.mpack_node_map_key_at(self.raw, @as(usize, index)),
     };
 
     return node;
 }
 
 /// Get Map Value node at specific index.
-pub fn getMapValueAt(self: Node, index: usize) !Node {
+pub fn getMapValueAt(self: Node, index: u32) !Node {
     if (self.getType() != .Map) return error.TypeMismatch;
     const count = try self.getMapLength();
     if (index >= count) return error.IndexOutOfBounds;
 
     const node = Node{
-        .raw = c.mpack_node_map_value_at(self.raw, index),
+        .raw = c.mpack_node_map_value_at(self.raw, @as(usize, index)),
     };
 
     return node;
@@ -227,7 +246,7 @@ pub fn getByPath(self: Node, path: []const u8) !Node {
             const index_str = segment[bracket_pos + 1 .. close_bracket];
             const index = std.fmt.parseInt(usize, index_str, 10) catch return error.InvalidNodePath;
             
-            current = try current.getArrayItem(index);
+            current = try current.getArrayItem(@intCast(index));
         } else {
             current = try current.getMapKey(segment);
         }
@@ -278,7 +297,7 @@ pub fn readAny(node: Node, allocator: std.mem.Allocator, comptime T: type) !T {
             // Track which fields we've found to ensure all required fields are present
             var found_fields = [_]bool{false} ** struct_info.fields.len;
             
-            var i: usize = 0;
+            var i: u32 = 0;
             while (i < map_len) : (i += 1) {
                 const key = try node.getMapKeyAt(i);
                 const value = try node.getMapValueAt(i);
@@ -321,7 +340,7 @@ pub fn readAny(node: Node, allocator: std.mem.Allocator, comptime T: type) !T {
                 var result = try allocator.alloc(ptr_info.child, len);
                 errdefer allocator.free(result);
                 
-                var i: usize = 0;
+                var i: u32 = 0;
                 while (i < len) : (i += 1) {
                     const item = try node.getArrayItem(i);
                     result[i] = try readAny(item, allocator, ptr_info.child);

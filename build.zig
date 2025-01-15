@@ -32,6 +32,9 @@ pub fn build(b: *std.Build) void {
             "-DMPACK_BUILDER=0",
             "-DMPACK_EXPECT=0",
 
+            // Enable MessagePack Extensions
+            "-DMPACK_EXTENSIONS=1",
+
             // Whether debug features are enabled
             "-DMPACK_DEBUG=" ++ (if(optimize == .Debug) "1" else "0"),
 

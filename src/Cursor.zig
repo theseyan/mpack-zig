@@ -29,10 +29,10 @@ pub const Event = union(enum) {
     arrayEnd,
     
     // Extensions
-    // extension: struct {
-    //     type: i8,
-    //     data: []const u8,
-    // },
+    extension: struct {
+        type: i8,
+        data: []const u8,
+    },
 };
 
 const Container = struct {
@@ -142,12 +142,13 @@ pub fn next(self: *Cursor) !?Event {
             };
             return Event{ .arrayStart = len };
         },
-        // .Extension => blk: {
-        //     self.decrement();
-            
-        //     // TODO: Extension handling would go here
-        //     break :blk Event.null;
-        // },
+        .Extension => {
+            self.decrement();
+            return Event{ .extension = .{
+                .data = try tag.getExtensionBytes(self.reader),
+                .type = tag.getExtensionType()
+            } };
+        },
     };
 }
 

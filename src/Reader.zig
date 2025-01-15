@@ -19,7 +19,7 @@ pub const TagType = enum {
     Bytes,
     Array,
     Map,
-    // Extension
+    Extension
 };
 
 pub const Tag = struct {
@@ -38,7 +38,7 @@ pub const Tag = struct {
             c.mpack_type_bin => .Bytes,
             c.mpack_type_array => .Array,
             c.mpack_type_map => .Map,
-            // c.mpack_type_ext => .Extension,
+            c.mpack_type_ext => .Extension,
             else => unreachable,
         };
     }
@@ -106,6 +106,20 @@ pub const Tag = struct {
         return bytes;
     }
 
+    /// Get Extension bytes from the reader.
+    /// This is a zero-copy operation, and the returned slice is valid as long as the underlying buffer lives.
+    pub fn getExtensionBytes(self: *Tag, reader: *Reader) ![]const u8 {
+        std.debug.assert(self.getType() == .Extension);
+        const len = self.getExtensionLength();
+        const bytes = c.mpack_read_bytes_inplace(&reader.raw, len)[0..len];
+        
+        // Validate the reader state is still valid
+        try throw(c.mpack_reader_error(&reader.raw));
+
+        c.mpack_done_ext(&reader.raw);
+        return bytes;
+    }
+
     /// Returns the length of string.
     pub fn getStringLength(self: *Tag) u32 {
         std.debug.assert(self.getType() == .String);
@@ -130,6 +144,11 @@ pub const Tag = struct {
     /// Returns the number of bytes in the extension value
     pub fn getExtensionLength(self: *Tag) u32 {
         return c.mpack_tag_ext_length(&self.raw);
+    }
+
+    /// Returns the type of Extension
+    pub fn getExtensionType(self: *Tag) i8 {
+        return c.mpack_tag_ext_exttype(&self.raw);
     }
 };
 
