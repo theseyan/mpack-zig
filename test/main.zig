@@ -265,7 +265,7 @@ test "Writer.writeEncodedObject" {
 
     try std.testing.expect((try cursor.next()).? == .mapStart);
     try std.testing.expectEqualStrings("key", (try cursor.next()).?.string);
-    _ = try cursor.next();
+    try std.testing.expect((try cursor.next()).? == .extension);
     _ = try cursor.next();
     _ = try cursor.next();
 }
