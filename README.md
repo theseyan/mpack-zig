@@ -54,9 +54,11 @@ As there is currently no proper documentation, I recommend checking out the [tes
 The simplest way to incrementally write a MessagePack encoded message to a buffer. Writing should always start with `startMap` and end with `finishMap`. Values should always be written immediately after respective keys.
 After writing is done, call `deinit` to flush the written bytes to the underlying buffer.
 
-For pure-Zig code, it can be useful to directly encode a struct using the `writeAny`/`writeAnyExplicit` methods.
+For pure-Zig code, it can be useful to directly encode a struct (or any supported type) using the `writeAny`/`writeAnyExplicit` methods.
 
 If you already have a parsed tree of nodes (using `Tree` API), and need to serialize a nested child `Map` node to it's own MessagePack buffer, use the `writeMapNode` method which accepts a `Tree.Node` (internally, it uses the `Writer` and `TreeCursor` APIs).
+
+It is also possible to write pre-encoded MessagePack object bytes as value to a larger object via `writeEncodedObject`. This is particularly useful when creating a larger structure that embeds smaller encoded structures, wihout having to decode and re-encode everything.
 
 ```zig
 const Writer = mpack.Writer;
@@ -107,11 +109,13 @@ The following `Writer` methods are available:
 - `writeNumberExplicit` - Infer the type of number at comptime, but value is runtime-known.
 - `writeString`
 - `writeBytes`
+- `writeExtension` - Read more on (MessagePack Extensions)[https://github.com/msgpack/msgpack/blob/master/spec.md#extension-types].
 - `startArray` - Start writing an array. `count` must be known upfront.
 - `startMap` - Start writing a map. `length` must be known upfront.
 - `finishArray`, `finishMap` - Close the last opened array/map.
 - `writeAnyExplicit` - When value is unknown at comptime, but type is known.
 - `writeMapNode` - Encode a parsed `NodeType.Map` node back to binary.
+- `writeEncodedObject` - Write a pre-encoded MessagePack object as value.
 - `stat` - Returns information about underlying buffer.
 
 ### `Tree`
@@ -155,6 +159,7 @@ pub const Node = {
     Bytes,
     Array,
     Map,
+    Extension,
     Missing
   };
 
@@ -168,11 +173,13 @@ pub const Node = {
   pub fn getDouble(self: Node) !f64
   pub fn getString(self: Node) ![]const u8
   pub fn getBytes(self: Node) ![]const u8
-  pub fn getArrayLength(self: Node) !usize
-  pub fn getArrayItem(self: Node, index: usize) !Node
-  pub fn getMapLength(self: Node) !usize
-  pub fn getMapKeyAt(self: Node, index: usize) !Node
-  pub fn getMapValueAt(self: Node, index: usize) !Node
+  pub fn getExtensionType(self: Node) !i8
+  pub fn getExtensionBytes(self: Node) ![]const u8
+  pub fn getArrayLength(self: Node) !u32
+  pub fn getArrayItem(self: Node, index: u32) !Node
+  pub fn getMapLength(self: Node) !u32
+  pub fn getMapKeyAt(self: Node, index: u32) !Node
+  pub fn getMapValueAt(self: Node, index: u32) !Node
   pub fn getMapKey(self: Node, key: []const u8) !Node
 };
 ```
@@ -208,6 +215,12 @@ pub const TreeCursor = struct {
     mapEnd,
     arrayStart: u32,    // Length of array
     arrayEnd,
+
+    // Extensions
+    extension: struct {
+        type: i8,
+        data: []const u8,
+    },
   };
 
   pub fn init(root: Node) TreeCursor
@@ -252,11 +265,13 @@ pub const Reader = struct {
     pub fn getDouble(self: *Tag) f64,
     pub fn getStringValue(self: *Tag, reader: *Reader) ![]const u8,
     pub fn getBinaryBytes(self: *Tag, reader: *Reader) ![]const u8,
+    pub fn getExtensionBytes(self: *Tag, reader: *Reader) ![]const u8
     pub fn getStringLength(self: *Tag) u32,
     pub fn getArrayLength(self: *Tag) u32,
     pub fn getMapLength(self: *Tag) u32,
     pub fn getBinLength(self: *Tag) u32,
-    pub fn getExtensionLength(self: *Tag) u32
+    pub fn getExtensionLength(self: *Tag) u32,
+    pub fn getExtensionType(self: *Tag) i8
   }
 
   pub fn init(data: []const u8) Reader
@@ -293,6 +308,12 @@ pub const Cursor = struct {
     mapEnd,
     arrayStart: u32,    // Length of array
     arrayEnd,
+
+    // Extensions
+    extension: struct {
+        type: i8,
+        data: []const u8,
+    },
   };
 
   pub fn init(reader: *Reader) Cursor
